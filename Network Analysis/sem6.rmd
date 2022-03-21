@@ -186,3 +186,45 @@ triad_census <- rbind(advice_triad, friend_triad, reports_triad)
 row.names(triad_census) <- c('advice', 'friendship', 'reports')
 as.data.frame(triad_census)
 ```
+
+4. Transitivity
+
+```{r}
+#gtrans(dat, g=NULL, diag=FALSE, mode="digraph", measure = c("weak", 
+ #   "strong", "weakcensus", "strongcensus", "rank", "correlation"), 
+  #  use.adjacency = TRUE)
+
+advice_weak <- gtrans(advice, mode = 'weak')
+advice_strong <- gtrans(advice, mode = 'strong')
+advice_weakcensus <- gtrans(advice, mode = 'weakcensus')
+advice_strongcensus <- gtrans(advice, mode = 'strongcensus')
+advice_rank <- gtrans(advice, mode = 'rank')
+advice_corr <- gtrans(advice, mode = 'correlation')
+advice_transitivity <- cbind(advice_weak, advice_strong, advice_weakcensus, advice_strongcensus, advice_rank, advice_corr)
+
+fr_weak <- gtrans(friendship, mode = 'weak')
+fr_strong <- gtrans(friendship, mode = 'strong')
+fr_weakcensus <- gtrans(friendship, mode = 'weakcensus')
+fr_strongcensus <- gtrans(friendship, mode = 'strongcensus')
+fr_rank <- gtrans(friendship, mode = 'rank')
+fr_corr <- gtrans(friendship, mode = 'correlation')
+friend_transitivity <- cbind(fr_weak, fr_strong, fr_weakcensus, fr_strongcensus, fr_rank, fr_corr)
+
+reports_weak <- gtrans(reports, mode = 'weak')
+reports_strong <- gtrans(reports, mode = 'strong')
+reports_weakcensus <- gtrans(reports, mode = 'weakcensus')
+reports_strongcensus <- gtrans(reports, mode = 'strongcensus')
+reports_rank <- gtrans(reports, mode = 'rank')
+reports_corr <- gtrans(reports, mode = 'correlation')
+reports_transitivity <- cbind(reports_weak, reports_strong, reports_weakcensus, reports_strongcensus, reports_rank, reports_corr)
+
+as.data.frame(advice_transitivity)
+as.data.frame(friend_transitivity)
+as.data.frame(reports_transitivity)
+
+all<-rbind(advice_transitivity, friend_transitivity, reports_transitivity)
+colnames(all) <- c('weak', 'strong', 'weak census', 'strong census', 'rank', 'correlation')
+row.names(all) <- c('advice', 'friendship', 'reports')
+as.data.frame(all)
+```
+
