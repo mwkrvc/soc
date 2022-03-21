@@ -1,0 +1,188 @@
+---
+title: "Seminar 6"
+output: html_notebook
+---
+
+```{r}
+library(sna)
+library(igraph)
+library(network)
+library(intergraph)
+library(NetCluster)
+```
+
+```{r}
+load("advice_data_frame.Rdata")
+load("friendship_data_frame.Rdata")
+load("reports_to_data_frame.Rdata")
+```
+
+```{r}
+head(advice_data_frame)
+```
+
+```{r}
+head(friendship_data_frame)
+```
+
+```{r}
+head(reports_to_data_frame)
+```
+
+Make an array of 3 the 3 data frames, add names to objects in list and check how many elements there are in our krack dataset
+
+```{r}
+krack <- list(advice_data_frame,
+              friendship_data_frame,
+              reports_to_data_frame)
+graphs <- c('advice', 'friendship', 'reports')
+names(krack) <- graphs
+length(krack)
+```
+
+```{r}
+names(krack)
+```
+
+```{r}
+for (i in 1:length(krack)){
+krack[[i]] <- as.matrix(krack[[i]])
+}
+```
+
+```{r}
+for(i in 1:3){
+krack[[i]] <- subset(krack[[i]],
+(krack[[i]][,3] > 0 ))
+}
+dim(krack[[1]]) # What is the size now?
+```
+
+```{r}
+head(krack[[1]])
+```
+
+```{r}
+for (i in 1:3){
+krack[[i]] <- network(krack[[i]],
+matrix.type = 'edgelist',
+vertex.attr = list("AGE","TENURE","LEVEL","DEPT"),
+vertex.attrnames = list("AGE","TENURE","LEVEL","DEPT"))
+}
+advice <- krack$advice
+friendship <- krack$friendship
+reports <- krack$reports
+```
+
+```{r}
+friendship
+```
+
+```{r}
+advice
+```
+
+```{r}
+reports
+```
+
+Create a set of coordinates to run the plot in and plot networks
+
+```{r}
+n<-network.size(advice)
+v1<-sample((0:(n-1))/n) #create a vector of random numbers
+v2<-sample(v1)
+x <- n/(2 * pi) * sin(2 * pi * v1)
+y <- n/(2 * pi) * cos(2 * pi * v2)
+mycoord <- cbind(x,y)
+par(mar=c(0,0,1,0))
+par(mfrow=c(1,3))
+plot(advice, edge.col='azure4', vertex.col='darkorange',
+     vertex.border='azure4',vertex.cex=2,coord=mycoord,
+     main ='Advice')
+plot(friendship, edge.col='azure4', vertex.col='darkorange',
+     vertex.border='azure4',vertex.cex=2, coord=mycoord,
+     main ='Friendship')
+plot(reports, edge.col='azure4', vertex.col='darkorange',
+     vertex.border='azure4',vertex.cex=2, coord=mycoord,
+     main='Direct Reports')
+```
+Assignment task 1
+
+1. Dyad census
+
+```{r}
+advice_dyad <- sna::dyad.census(advice)
+friend_dyad <- sna::dyad.census(friendship)
+reports_dyad <- sna::dyad.census(reports)
+dyad_census <- rbind(advice_dyad, friend_dyad, reports_dyad)
+row.names(dyad_census) <- c('advice', 'friendship', 'reports')
+as.data.frame(dyad_census)
+```
+
+The networks are now positioned in a way to represented the networks from most to least connected, first being 'advice' and 'reports' being last
+
+2. Centrality
+
+a) Degrees
+Creating igraph objects for further calculations
+
+```{r}
+advice_graph <- graph_from_data_frame(advice, directed = TRUE)
+friend_graph <- graph_from_data_frame(friendship, directed = TRUE)
+reports_graph <- graph_from_data_frame(reports, directed = TRUE)
+```
+
+```{r}
+advice_indegree <- igraph::degree(advice_graph, mode = 'in')
+advice_outdegree <- igraph::degree(advice_graph, mode = 'out')
+advice_total <- igraph::degree(advice_graph, mode = 'total')
+advices <- cbind(advice_indegree, advice_outdegree, advice_total)
+
+friend_indegree <- igraph::degree(friend_graph, mode = 'in')
+friend_outdegree <- igraph::degree(friend_graph, mode = 'out')
+friend_total <- igraph::degree(friend_graph, mode = 'total')
+friends <- cbind(friend_indegree, friend_outdegree, friend_total)
+
+reports_indegree <- igraph::degree(reports_graph, mode = 'in')
+reports_outdegree <- igraph::degree(reports_graph, mode = 'out')
+reports_total <- igraph::degree(reports_graph, mode = 'total')
+reports_d <- cbind(reports_indegree, reports_outdegree, reports_total)
+
+as.data.frame(advices)
+as.data.frame(friends)
+as.data.frame(reports_d)
+```
+
+b) Betweenness
+
+```{r}
+advice_b <- igraph::betweenness(advice_graph)
+friend_b <- igraph::betweenness(friend_graph)
+reports_b <- igraph::betweenness(reports_graph)
+all_betweenness <- cbind(advice_b, friend_b, reports_b)
+colnames(all_betweenness) <- c('advice', 'friendship', 'reports')
+as.data.frame(all_betweenness)
+```
+
+c) Closeness
+
+```{r}
+advice_closeness <- igraph::closeness(advice_graph, mode = 'all')
+friend_closeness <- igraph::closeness(friend_graph, mode = 'all')
+reports_closeness <- igraph::closeness(reports_graph, mode = 'all')
+all_closeness <- cbind(advice_closeness, friend_closeness, reports_closeness)
+colnames(all_closeness) <- c('advice', 'friendship', 'reports')
+as.data.frame(all_closeness)
+```
+
+3. Triad census
+
+```{r}
+advice_triad <- sna::triad.census(advice)
+friend_triad <- sna::triad.census(friendship)
+reports_triad <- sna::triad.census(reports)
+triad_census <- rbind(advice_triad, friend_triad, reports_triad)
+row.names(triad_census) <- c('advice', 'friendship', 'reports')
+as.data.frame(triad_census)
+```
