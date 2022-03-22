@@ -228,3 +228,495 @@ row.names(all) <- c('advice', 'friendship', 'reports')
 as.data.frame(all)
 ```
 
+```{r}
+formal <- as.matrix(read.csv('formal.csv', header = TRUE, row.names = 1))
+roles <- read.csv('roles.csv', header = TRUE, row.names = 1)
+formalnet <- network(formal)
+par(mar=c(0,0,2,0))
+indeg <- sna::degree(formalnet, cmode = 'indegree')
+mycoord <- plot(formalnet, displaylabels=TRUE, edge.col='azure4',
+vertex.col="#E41A1C", vertex.border='azure4',
+vertex.cex = indeg + 1 , main ='Downton Abbey',
+label.cex=0.5, label.pos = 5)
+```
+
+```{r}
+orRule <- network(symmetrize(formalnet, rule='weak'),
+directed = FALSE)
+class(orRule)
+```
+
+```{r}
+andRule <- network(symmetrize(formalnet, rule='strong'),
+directed = FALSE)
+```
+
+```{r}
+par(mar=c(1,1,2,1))
+par(mfrow=c(1,3))
+plot(formalnet, main = 'Original', coord=mycoord, vertex.cex =3,
+edge.col='azure4', vertex.col="#E41A1C", vertex.border='azure4',
+label=seq(1:20),label.pos=5,label.cex=.5,label.col='gray15')
+plot(orRule, main = 'Or Rule', coord=mycoord, vertex.cex =3,
+edge.col='azure4', vertex.col="#377EB8", vertex.border='azure4',
+label=seq(1:20),label.pos=5,label.cex=.5,label.col='gray15')
+plot(andRule, main = 'And Rule', coord=mycoord, vertex.cex =3,
+edge.col='azure4', vertex.col="#4DAF4A", vertex.border='azure4',
+label=seq(1:20),label.pos=5,label.cex=.5,label.col='gray15')
+```
+
+```{r}
+snasymmformal <- orRule
+aprioriformal<-blockmodel(snasymmformal, roles$commdetect,
+block.content="density", mode="graph",
+diag=FALSE)
+heatmap(aprioriformal[[4]])
+```
+
+```{r}
+aprioriformal[[1]]
+aprioriformal[[2]]
+aprioriformal[[3]]
+aprioriformal[[4]]
+```
+
+```{r}
+library(RColorBrewer)
+par(mar=c(1,1,1,1),mfrow=c(2,3))
+col5 <- brewer.pal(5, 'Set1')
+cols <- ifelse(aprioriformal[[1]] == 1, col5[1],
+ifelse(aprioriformal[[1]] == 2, col5[2],
+ifelse(aprioriformal[[1]] == 3, col5[3],
+ifelse(aprioriformal[[1]] == 4, col5[4], col5[5]))))
+par(mar=c(1,1,2,1),mfrow=c(1,1))
+plot(snasymmformal, main = 'Apriori Block Model', coord=mycoord,
+vertex.cex =3, edge.col='azure4', vertex.col=cols,
+vertex.border='azure4', label=seq(1:20), label.pos=5,
+label.cex=.5, label.col='gray15')
+```
+
+```{r}
+distformal <- dist(snasymmformal, method="euclidian", diag=FALSE)
+thick <- as.vector(distformal)
+par(mar=c(0.5,0,2,0))
+plot(snasymmformal, main = 'Euclidean Distances', coord=mycoord,
+vertex.cex =3, edge.col='azure4', vertex.col=col5[2],
+vertex.border='azure4', label=seq(1:20),label.pos=5,
+label.cex=.5,label.col='gray15', edge.lwd = thick^2)
+```
+
+```{r}
+formalclust <- hclust(distformal, method="complete")
+```
+
+```{r}
+exploratoryformal<-blockmodel(snasymmformal, formalclust, k=6,
+block.content="density", mode="graph",
+diag=FALSE)
+par(mar=c(0,0,2,0))
+plot.blockmodel(aprioriformal)
+```
+
+```{r}
+plot.blockmodel(exploratoryformal)
+```
+
+Assignment 2
+Experimenting with k
+
+```{r}
+exploratoryformal4<-blockmodel(snasymmformal, formalclust, k=4,
+block.content="density", mode="graph",
+diag=FALSE)
+par(mar=c(0,0,2,0))
+plot.blockmodel(exploratoryformal4)
+```
+
+
+```{r}
+exploratoryformal2<-blockmodel(snasymmformal, formalclust, k=2,
+block.content="density", mode="graph",
+diag=FALSE)
+par(mar=c(0,0,2,0))
+plot.blockmodel(exploratoryformal2)
+```
+
+```{r}
+exploratoryformal8<-blockmodel(snasymmformal, formalclust, k=8,
+block.content="density", mode="graph",
+diag=FALSE)
+par(mar=c(0,0,2,0))
+plot.blockmodel(exploratoryformal8)
+```
+
+```{r}
+par(mar = c(1,1,4,1), mfrow = c(1,2))
+heatmap(aprioriformal[[4]], main ='Apriori Blockmodel')
+```
+
+```{r}
+heatmap(exploratoryformal[[4]], main ='Exploratory Blockmodel')
+```
+
+```{r}
+connectedformal<-formal[-20,-20] # operation on the matrix
+class(connectedformal)
+```
+
+```{r}
+CONCOR <- function(mat, max.iter=1000, epsilon=1e-10){
+mat <- rbind(mat, t(mat))
+colN <- ncol(mat)
+X <- matrix(rep(0, times=colN*colN), nrow=colN, ncol=colN)
+target.abs.value <- colN * colN - epsilon
+for (iter in 1:max.iter){
+for(i in 1:colN){
+for(j in i:colN){
+X[i,j]<-cor(mat[,i], mat[,j], method=c("pearson"))
+}
+}
+mat <- X+(t(X)-diag(diag((X))))
+if (sum(abs(mat)) > target.abs.value) {
+return(mat)
+}
+}
+return(mat)
+}
+```
+
+```{r}
+rownames(connectedformal) <- row.names(roles)[1:19]
+colnames(connectedformal) <- row.names(roles)[1:19]
+```
+
+```{r}
+CONCORFORMAL<-CONCOR(connectedformal)
+heatmap(CONCORFORMAL)
+```
+
+```{r}
+part1 <- connectedformal[14:19,14:19]
+colnames(part1)
+```
+
+```{r}
+concor1 <- CONCOR(part1)
+heatmap(concor1)
+```
+
+```{r}
+part2 <- connectedformal[1:13,1:13] # isolate the first 13 nodes
+# We commented the matrix out, but you can look at it on your own
+##part2
+concor2 <- CONCOR(part2) # Run through CONCOR
+heatmap(concor2) # Look at the result
+```
+
+```{r}
+part3<-c(1,3,8,9,12,13) # isolate the needed nodes
+part3.1<-part2[part3,part3] # remove the isolates from partition 2
+colnames(part3.1) # Who is here?
+```
+
+```{r}
+part3.2 <- part2[-part3,-part3] # Extract remaining nodes from part2
+concor3.2 <- CONCOR(part3.2) # Run it through CONCOR
+heatmap(concor3.2)
+```
+
+```{r}
+colnames(part3.2[1:2,1:2]) # Names in the first subpart
+```
+
+```{r}
+colnames(part3.2[3:7,3:7]) # Names in the second subpart
+```
+
+```{r}
+part3.2.2 <- part3.2[3:7,3:7] # Create a partition
+```
+
+Assignment 3
+List partitions
+
+```{r}
+colnames(part1)
+```
+
+```{r}
+colnames(part2)
+```
+
+```{r}
+colnames(part3.1)
+```
+
+```{r}
+colnames(part3.2)
+```
+
+```{r}
+colnames(part3.2.2)
+```
+
+```{r}
+load("friend_df.Rdata")
+load("m182_full_data_frame.Rdata")
+load("social_df.Rdata")
+load("task_df.Rdata")
+```
+
+```{r}
+m182_full_nonzero_edges <- subset(m182_full_data_frame,
+(friend_tie > 0 | social_tie > 0 | task_tie > 0))
+head( m182_full_nonzero_edges) # Check what's left
+```
+
+```{r}
+m182_full <- graph.data.frame(m182_full_nonzero_edges)
+summary(m182_full)
+```
+
+```{r}
+m182_friend <- delete.edges(m182_full, E(m182_full)[E(m182_full)$friend_tie==0])
+m182_social <- delete.edges(m182_full, E(m182_full)[E(m182_full)$social_tie==0])
+m182_task <- delete.edges(m182_full, E(m182_full)[E(m182_full)$task_tie==0])
+```
+
+Assignment 4: why are we deleting edges?
+We do not need edges with zero ties for blockmodeling
+
+```{r}
+# This is if we want to use the edge value
+task_adjacency<-get.adjacency(m182_task, attr='task_tie')
+# This is if we only want the tie (so it's 0 or 1)
+binary_task_adjacency<-get.adjacency(m182_task)
+```
+
+```{r}
+task_adjacency<-as.matrix(task_adjacency) #generate the matrix out of a graph
+# Create a nx2n matrix of directed connections
+task_matrix<-rbind(task_adjacency,t(task_adjacency))
+```
+
+```{r}
+# Same for matrix of social connections:
+social_adjacency<-get.adjacency(m182_social, attr='social_tie')
+binary_social_adjacency<-get.adjacency(m182_social) #this is for later
+social_adjacency<-as.matrix(social_adjacency)
+social_matrix<-rbind(social_adjacency,t(social_adjacency))
+# Because we want to analyze social and task connections together, bind matrices:
+task_social_matrix <-rbind(task_matrix,social_matrix)
+dim(task_social_matrix)
+```
+
+```{r}
+task_social_cors<-cor(task_social_matrix) # Correlate matrices
+```
+
+```{r}
+dissimilarity<-1-task_social_cors #subtract matrix values from 1
+task_social_dist<-as.dist(dissimilarity) #create a distance matrix
+```
+
+```{r}
+task_social_dist<-dist(t(task_social_matrix))
+```
+
+```{r}
+task_social_hclust <- hclust(task_social_dist)
+plot(task_social_hclust)
+```
+
+```{r}
+cutree(task_social_hclust,k=2)
+```
+
+```{r}
+clustered_observed_cors = vector() # set it as a vector
+num_vertices = length(V(m182_task)) # get the length of the vector
+```
+
+```{r}
+clustered_observed_cors <-clustConfigurations(num_vertices,task_social_hclust,task_social_cors)
+```
+
+```{r}
+clustered_observed_cors$correlations
+```
+
+```{r}
+num_clusters = 4 # Test our number of clusters
+clusters <- cutree(task_social_hclust, k = num_clusters)
+clusters
+```
+
+```{r}
+cluster_cor_mat <- clusterCorr(task_social_cors,
+clusters)
+```
+
+Assignment 5:
+What rationale do you have for selecting the number of clusters / positions with the method above? 
+
+It is generally more appropriate to select a smaller number of clusters, in this case we can look at the graph above and see that after a certain point correlation rises for only a bit, thus we choose. Experimenting with clustering with k less than 4 is not productive as 4 is the point where is the number correlation starts to rise gradually. As for choosing a number larger than 4: only some variance can be explained further so there is no need to test out many other cases. In our previous courses we usually used 3 >= k <= 7
+
+```{r}
+apriori = c(1, 2, 1, 1, 1, 1, 2, 2, 1, 1, 1, 1, 1, 1, 1, 3)
+deductive_cluster_cor_mat <- generate_cluster_cor_mat(task_social_cors, apriori)
+gcor(deductive_cluster_cor_mat, task_social_cors)
+```
+
+```{r}
+# Blockmodel on valued task data
+task_valued_blockmodel <- blockmodel(task_adjacency, clusters)
+# Blockmodel on binary task data
+binary_task_adjacency<-as.matrix(binary_task_adjacency) # turn graph to matrix first
+task_binary_blockmodel <- blockmodel(binary_task_adjacency, clusters)
+# Blockmodel on valued social data
+social_valued_blockmodel <- blockmodel(social_adjacency, clusters)
+#Blockmodel on binary social data
+binary_social_adjacency<-as.matrix(binary_social_adjacency)
+social_binary_blockmodel <- blockmodel(binary_social_adjacency, clusters)
+# Now, look at the basic statistics:
+task_mean <- mean(task_adjacency)
+task_mean
+```
+
+```{r}
+task_density <- graph.density(m182_task)
+task_density
+```
+
+```{r}
+social_mean <- mean(social_adjacency)
+social_mean
+```
+
+```{r}
+social_density <- graph.density(m182_social)
+social_density
+```
+
+```{r}
+plot1<-heatmap(task_valued_blockmodel[[4]])
+```
+
+```{r}
+plot2 <- heatmap(social_valued_blockmodel[[4]])
+```
+
+```{r}
+plot3 <- heatmap(task_binary_blockmodel[[4]])
+```
+
+```{r}
+plot4 <- heatmap(social_binary_blockmodel[[4]])
+```
+
+Blockmodels help us characterise the data without making assumptions about it, examine it through a visual output
+
+
+Homework 3
+
+```{r}
+load('trade.Rdata')
+```
+
+```{r}
+head(trade.all)
+```
+
+
+```{r}
+trade <- as.matrix(trade.all)
+tradenet <- network(trade)
+par(mar=c(0,0,2,0))
+indeg <- sna::degree(tradenet, cmode = 'indegree')
+mycoord <- plot(tradenet, displaylabels=TRUE, edge.col='azure4',
+vertex.col="#E41A1C", vertex.border='azure4',
+vertex.cex = indeg / 4, label.cex=0.5, label.pos = 5)
+```
+
+```{r}
+orRuleTrade <- network(symmetrize(tradenet, rule='weak'),
+directed = FALSE)
+class(orRuleTrade)
+```
+
+```{r}
+andRuleTrade <- network(symmetrize(tradenet, rule='strong'),
+directed = FALSE)
+```
+
+```{r}
+snasymmtrade <- orRuleTrade
+disttrade <- dist(snasymmtrade, method="euclidian", diag=FALSE)
+thick <- as.vector(disttrade)
+tradeclust <- hclust(disttrade, method="complete")
+exploratorytrade6<-blockmodel(snasymmtrade, tradeclust, k=6,
+block.content="density", mode="graph",
+diag=FALSE)
+plot.blockmodel(exploratorytrade6)
+```
+
+```{r}
+par(mar = c(1,1,4,1), mfrow = c(1,2))
+heatmap(exploratorytrade6[[4]], main ='Exploratory Blockmodel')
+```
+
+```{r}
+exploratorytrade4<-blockmodel(snasymmtrade, tradeclust, k=4,
+block.content="density", mode="graph",
+diag=FALSE)
+plot.blockmodel(exploratorytrade4)
+```
+
+```{r}
+par(mar = c(1,1,4,1), mfrow = c(1,2))
+heatmap(exploratorytrade4[[4]], main ='Exploratory Blockmodel')
+```
+
+```{r}
+exploratorytrade8<-blockmodel(snasymmtrade, tradeclust, k=8,
+block.content="density", mode="graph",
+diag=FALSE)
+plot.blockmodel(exploratorytrade8)
+```
+
+```{r}
+par(mar = c(1,1,4,1), mfrow = c(1,2))
+heatmap(exploratorytrade6[[4]], main ='Exploratory Blockmodel')
+```
+
+```{r}
+CONCOR <- function(mat, max.iter=1000, epsilon=1e-10){
+mat <- rbind(mat, t(mat))
+colN <- ncol(mat)
+X <- matrix(rep(0, times=colN*colN), nrow=colN, ncol=colN)
+target.abs.value <- colN * colN - epsilon
+for (iter in 1:max.iter){
+for(i in 1:colN){
+for(j in i:colN){
+X[i,j]<-cor(mat[,i], mat[,j], method=c("pearson"))
+}
+}
+mat <- X+(t(X)-diag(diag((X))))
+if (sum(abs(mat)) > target.abs.value) {
+return(mat)
+}
+}
+return(mat)
+}
+```
+
+```{r}
+connectedtrade<-trade[-24,-24]
+class(connectedtrade)
+```
+
+```{r}
+CONCORFORMAL<-CONCOR(connectedtrade)
+heatmap(CONCORFORMAL)
+```
+
